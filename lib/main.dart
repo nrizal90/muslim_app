@@ -8,8 +8,6 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
 
-import 'features/quran/data/datasources/quran_local_datasource.dart';
-import 'features/quran/data/datasources/quran_remote_datasource.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,7 +29,6 @@ class AppInitializer extends StatefulWidget {
 
 class _AppInitializerState extends State<AppInitializer> {
   bool _ready = false;
-  String _status = "Memulai aplikasi...";
 
   @override
   void initState() {
@@ -40,51 +37,19 @@ class _AppInitializerState extends State<AppInitializer> {
   }
 
   Future<void> _initialize() async {
-    _setStatus("Menyiapkan notifikasi...");
     await NotificationService().init();
-
-    _setStatus("Membuka database...");
     await DatabaseHelper.instance.database;
-
-    final local = QuranLocalDataSource(DatabaseHelper.instance);
-    final isEmpty = await local.isAyahTableEmpty();
-
-    if (isEmpty) {
-      _setStatus("Mengunduh data Al-Qur'an...\n(hanya sekali saat pertama install)");
-      final ayahs = await QuranRemoteDataSource().fetchAllAyahs();
-
-      _setStatus("Menyimpan data Al-Qur'an...");
-      await local.insertAyahs(ayahs);
-    }
-
     setState(() => _ready = true);
-  }
-
-  void _setStatus(String status) {
-    if (mounted) setState(() => _status = status);
   }
 
   @override
   Widget build(BuildContext context) {
     if (_ready) return const MyApp();
 
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: 24),
-              Text(
-                _status,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-            ],
-          ),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       ),
     );
   }

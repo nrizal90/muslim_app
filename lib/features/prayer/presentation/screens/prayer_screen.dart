@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/prayer_provider.dart';
 import '../../../../core/services/notification_service.dart';
+import '../../../quran/presentation/providers/quran_download_provider.dart';
 
 class PrayerScreen extends ConsumerStatefulWidget {
   const PrayerScreen({super.key});
@@ -96,7 +97,7 @@ class _PrayerScreenState extends ConsumerState<PrayerScreen> with WidgetsBinding
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadNotificationStatus();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _timer = Timer.periodic(const Duration(minutes: 1), (timer) {
       setState(() {
         _now = DateTime.now();
       });
@@ -121,8 +122,7 @@ class _PrayerScreenState extends ConsumerState<PrayerScreen> with WidgetsBinding
       "Isya": prayer.isha,
     };
 
-    final sorted = times.entries.toList()
-      ..sort((a, b) => a.value.compareTo(b.value));
+    final sorted = times.entries.toList();
 
     for (int i = 0; i < sorted.length; i++) {
       final current = sorted[i];
@@ -320,23 +320,6 @@ class _PrayerScreenState extends ConsumerState<PrayerScreen> with WidgetsBinding
     }
   }
 
-  Future<void> debugNotification60Seconds() async {
-    final notificationService = NotificationService();
-    // await notificationService.init();
-
-    final now = DateTime.now();
-    final debugTime = now.add(const Duration(seconds: 60));
-
-    await notificationService.schedulePrayerNotification(
-      id: 99999, // id khusus debug
-      title: "DEBUG NOTIFICATION",
-      body: "Kalau ini muncul, scheduling berhasil 🚀",
-      dateTime: debugTime,
-    );
-
-    debugPrint("Debug notif dijadwalkan untuk: $debugTime");
-  }
-
   IconData _getIconForPrayer(String name) {
     if (name == "Subuh") return Icons.wb_twilight;
     if (name == "Syuruq") return Icons.wb_sunny_outlined;
@@ -347,17 +330,18 @@ class _PrayerScreenState extends ConsumerState<PrayerScreen> with WidgetsBinding
   }
   
   Widget _prayerTile(String name, DateTime time, bool isActive) {
+    final color = Theme.of(context).colorScheme.primary;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
       decoration: BoxDecoration(
-        color: isActive ? Colors.green.withOpacity(0.1) : Colors.transparent,
+        color: isActive ? color.withValues(alpha: 0.1) : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
-        border: isActive ? Border.all(color: Colors.green, width: 1) : null,
+        border: isActive ? Border.all(color: color, width: 1) : null,
       ),
       child: ListTile(
         leading: Icon(
           _getIconForPrayer(name),
-          color: isActive ? Colors.green : Colors.grey,
+          color: isActive ? color : Colors.grey,
         ),
         title: Text(
           name,
@@ -369,7 +353,7 @@ class _PrayerScreenState extends ConsumerState<PrayerScreen> with WidgetsBinding
           formatTime(time),
           style: TextStyle(
             fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-            color: isActive ? Colors.green : Colors.black87,
+            color: isActive ? color : Colors.black87,
           ),
         ),
       ),
@@ -397,7 +381,7 @@ class _PrayerScreenState extends ConsumerState<PrayerScreen> with WidgetsBinding
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -412,6 +396,69 @@ class _PrayerScreenState extends ConsumerState<PrayerScreen> with WidgetsBinding
               title,
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _quranFeatureItem(BuildContext context) {
+    final quranState = ref.watch(quranDownloadProvider);
+    final color = Theme.of(context).colorScheme.primary;
+
+    return InkWell(
+      onTap: quranState.isReady ? () => context.push('/quran') : null,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (quranState.isDownloading) ...[
+              SizedBox(
+                width: 30,
+                height: 30,
+                child: CircularProgressIndicator(
+                  value: quranState.progress,
+                  strokeWidth: 3,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "${(quranState.progress * 100).toStringAsFixed(0)}%",
+                style: TextStyle(fontSize: 10, color: color),
+              ),
+            ] else if (quranState.error != null) ...[
+              const Icon(Icons.cloud_off_rounded, color: Colors.red, size: 30),
+              const SizedBox(height: 4),
+              GestureDetector(
+                onTap: () => ref.read(quranDownloadProvider.notifier).download(),
+                child: const Text(
+                  "Coba lagi",
+                  style: TextStyle(fontSize: 10, color: Colors.red),
+                ),
+              ),
+            ] else ...[
+              Icon(Icons.menu_book_rounded,
+                  color: quranState.isReady ? color : Colors.grey, size: 30),
+            ],
+            const SizedBox(height: 8),
+            const Text(
+              "Al-Qur'an",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -538,13 +585,11 @@ class _PrayerScreenState extends ConsumerState<PrayerScreen> with WidgetsBinding
                 mainAxisSpacing: 10,
                 childAspectRatio: 0.9, // Mengatur rasio lebar/tinggi kotak
                 children: [
-                  _featureItem(context, "Al-Qur'an", Icons.menu_book_rounded,
-                    onTap: () => context.go('/quran'),
-                    isEnabled: true),
+                  _quranFeatureItem(context),
                   _featureItem(context, "Dzikir Pagi & Petang", Icons.import_contacts_rounded),
                   _featureItem(context, "Masjid Terdekat", Icons.mosque_rounded),
                   _featureItem(context, "Kiblat", Icons.explore_rounded,
-                    onTap: () => context.go('/qibla'),
+                    onTap: () => context.push('/qibla'),
                     isEnabled: true),
                   _featureItem(context, "Kumpulan Doa Harian", Icons.auto_stories_rounded),
                   _featureItem(context, "Zakat", Icons.payments_rounded),

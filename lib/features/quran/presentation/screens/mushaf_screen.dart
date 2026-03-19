@@ -4,7 +4,9 @@ import '../../data/models/ayah_model.dart';
 import '../../../../core/database/database_helper.dart';
 
 class MushafScreen extends StatefulWidget {
-  const MushafScreen({super.key});
+  final int initialPage;
+
+  const MushafScreen({super.key, this.initialPage = 1});
 
   @override
   State<MushafScreen> createState() => _MushafScreenState();
@@ -14,13 +16,26 @@ class _MushafScreenState extends State<MushafScreen> {
   late QuranLocalDataSource localDataSource;
   late PageController _pageController;
 
-  int currentPage = 1;
+  late int currentPage;
+
+  // Prefix Bismillah yang disertakan API di teks ayah 1 setiap surah
+  static const _bismillahPrefix = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
+
+  String _stripBismillah(String text) {
+    if (text.startsWith(_bismillahPrefix)) {
+      return text.substring(_bismillahPrefix.length).trimLeft();
+    }
+    return text;
+  }
 
   @override
   void initState() {
     super.initState();
     localDataSource = QuranLocalDataSource(DatabaseHelper.instance);
-    _pageController = PageController(initialPage: 0);
+    currentPage = widget.initialPage;
+    // PageView index = page - 1, reverse: true jadi index 0 = halaman terakhir
+    // Kita harus hitung index yang benar untuk reverse PageView
+    _pageController = PageController(initialPage: widget.initialPage - 1);
   }
 
   @override
@@ -100,66 +115,90 @@ class _MushafScreenState extends State<MushafScreen> {
 
                     // 🔥 LIST AYAT
                     Expanded(
-                      child: ListView.separated(
-                        itemCount: pageAyahs.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 24),
-                        itemBuilder: (context, index) {
-                          final ayah = pageAyahs[index];
-
-                          return Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.grey.shade200),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                // Nomor ayat
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: CircleAvatar(
-                                    radius: 14,
-                                    backgroundColor: Colors.grey.shade200,
-                                    child: Text(
-                                      ayah.ayahNumber.toString(),
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
+                      child: ListView(
+                        children: [
+                          for (final ayah in pageAyahs) ...[
+                            // Bismillah di awal tiap surah kecuali Al-Fatihah (1) dan At-Tawbah (9)
+                            if (ayah.ayahNumber == 1 &&
+                                ayah.surahId != 1 &&
+                                ayah.surahId != 9) ...[
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 16),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
+                                  textDirection: TextDirection.rtl,
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    height: 2,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 24),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  // Nomor ayat
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: CircleAvatar(
+                                      radius: 14,
+                                      backgroundColor: Colors.grey.shade200,
+                                      child: Text(
+                                        ayah.ayahNumber.toString(),
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
 
-                                const SizedBox(height: 12),
+                                  const SizedBox(height: 12),
 
-                                // Arab
-                                Text(
-                                  ayah.textUthmani,
-                                  textAlign: TextAlign.right,
-                                  textDirection: TextDirection.rtl,
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    height: 1.8,
+                                  // Arab
+                                  Text(
+                                    (ayah.ayahNumber == 1 && ayah.surahId != 1 && ayah.surahId != 9)
+                                        ? _stripBismillah(ayah.textUthmani)
+                                        : ayah.textUthmani,
+                                    textAlign: TextAlign.right,
+                                    textDirection: TextDirection.rtl,
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      height: 1.8,
+                                    ),
                                   ),
-                                ),
 
-                                const SizedBox(height: 12),
+                                  const SizedBox(height: 12),
 
-                                // Terjemahan
-                                Text(
-                                  ayah.textId.isEmpty ? "-" : ayah.textId,
-                                  textAlign: TextAlign.left,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    height: 1.6,
-                                    color: Colors.grey.shade700,
+                                  // Terjemahan
+                                  Text(
+                                    ayah.textId.isEmpty ? "-" : ayah.textId,
+                                    textAlign: TextAlign.left,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      height: 1.6,
+                                      color: Colors.grey.shade700,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          );
-                        },
+                          ],
+                        ],
                       ),
                     ),
                   ],

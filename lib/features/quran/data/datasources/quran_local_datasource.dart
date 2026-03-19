@@ -67,6 +67,31 @@ class QuranLocalDataSource {
     await batch.commit(noResult: true);
   }
 
+  Future<List<SurahModel>> getAllSurahs() async {
+    final db = await _db;
+    final result = await db.query('surah', orderBy: 'id ASC');
+    return result.map((row) => SurahModel(
+      id: row['id'] as int,
+      nameArabic: row['name_ar'] as String,
+      nameEnglish: row['name_en'] as String,
+      revelationType: row['revelation_type'] as String? ?? '',
+      totalAyah: row['total_ayah'] as int,
+    )).toList();
+  }
+
+  Future<int> getFirstPageBySurahId(int surahId) async {
+    final db = await _db;
+    final result = await db.query(
+      'ayah',
+      columns: ['page'],
+      where: 'surah_id = ?',
+      whereArgs: [surahId],
+      orderBy: 'ayah_number ASC',
+      limit: 1,
+    );
+    return result.isNotEmpty ? result.first['page'] as int : 1;
+  }
+
   Future<SurahModel?> getSurahById(int id) async {
     final db = await _db;
 
@@ -81,7 +106,7 @@ class QuranLocalDataSource {
         id: result.first['id'] as int,
         nameArabic: result.first['name_ar'] as String,
         nameEnglish: result.first['name_en'] as String,
-        revelationType: result.first['revelation_type'] as String,
+        revelationType: result.first['revelation_type'] as String? ?? '',
         totalAyah: result.first['total_ayah'] as int,
       );
     }
