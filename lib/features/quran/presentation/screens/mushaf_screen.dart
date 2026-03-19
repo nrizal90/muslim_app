@@ -67,7 +67,6 @@ class _MushafScreenState extends State<MushafScreen> {
 
               final pageAyahs = snapshot.data!;
               final firstAyah = pageAyahs.first;
-              final surah = await localDataSource.getSurahById(firstAyah.surahId);
 
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -75,31 +74,47 @@ class _MushafScreenState extends State<MushafScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // 🔥 HEADER SURAH
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            "Surah ${firstAyah.surahId}",
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                    FutureBuilder(
+                      future: localDataSource.getSurahById(firstAyah.surahId),
+                      builder: (context, surahSnapshot) {
+                        final surahName = surahSnapshot.data?.nameEnglish ?? "Surah ${firstAyah.surahId}";
+                        final surahArabic = surahSnapshot.data?.nameArabic ?? "";
+
+                        return Container(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            "Page $pageNumber",
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade600,
-                            ),
+                          child: Column(
+                            children: [
+                              if (surahArabic.isNotEmpty)
+                                Text(
+                                  surahArabic,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              Text(
+                                surahName,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "Halaman $pageNumber",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
 
                     const SizedBox(height: 16),
