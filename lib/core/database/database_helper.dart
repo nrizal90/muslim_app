@@ -20,41 +20,22 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
   }
 
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      await db.execute('ALTER TABLE surah ADD COLUMN revelation_type TEXT');
-    }
+    // Versi 3: migrasi ke quran.com API v4 — recreate tabel surah & ayah
+    // (data akan diunduh ulang dari API baru)
+    await db.execute('DROP TABLE IF EXISTS ayah');
+    await db.execute('DROP TABLE IF EXISTS surah');
+    await _createTables(db);
   }
 
   Future _createDB(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE surah (
-        id INTEGER PRIMARY KEY,
-        name_ar TEXT,
-        name_en TEXT,
-        name_id TEXT,
-        revelation_type TEXT,
-        total_ayah INTEGER
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE ayah (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        surah_id INTEGER,
-        ayah_number INTEGER,
-        page INTEGER,
-        juz INTEGER,
-        text_uthmani TEXT,
-        text_id TEXT
-      )
-    ''');
+    await _createTables(db);
 
     await db.execute('''
       CREATE TABLE bookmark (
@@ -73,13 +54,34 @@ class DatabaseHelper {
         page INTEGER
       )
     ''');
+  }
 
+  Future _createTables(Database db) async {
     await db.execute('''
-      CREATE INDEX idx_page ON ayah(page)
+      CREATE TABLE surah (
+        id INTEGER PRIMARY KEY,
+        name_ar TEXT,
+        name_en TEXT,
+        name_id TEXT,
+        revelation_type TEXT,
+        total_ayah INTEGER,
+        bismillah_pre INTEGER NOT NULL DEFAULT 0
+      )
     ''');
 
     await db.execute('''
-      CREATE INDEX idx_surah ON ayah(surah_id)
+      CREATE TABLE ayah (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        surah_id INTEGER,
+        ayah_number INTEGER,
+        page INTEGER,
+        juz INTEGER,
+        text_indopak TEXT,
+        text_id TEXT
+      )
     ''');
+
+    await db.execute('CREATE INDEX idx_page ON ayah(page)');
+    await db.execute('CREATE INDEX idx_surah ON ayah(surah_id)');
   }
 }

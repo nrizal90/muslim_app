@@ -4,7 +4,7 @@ class AyahModel {
   final int ayahNumber;
   final int page;
   final int juz;
-  final String textUthmani;
+  final String textIndopak;
   final String textId;
 
   AyahModel({
@@ -13,20 +13,9 @@ class AyahModel {
     required this.ayahNumber,
     required this.page,
     required this.juz,
-    required this.textUthmani,
+    required this.textIndopak,
     required this.textId,
   });
-
-  factory AyahModel.fromJson(Map<String, dynamic> json) {
-    return AyahModel(
-      surahId: json['surah_number'],
-      ayahNumber: json['number_in_surah'],
-      page: json['page'],
-      juz: json['juz'],
-      textUthmani: json['text_uthmani'],
-      textId: json['translation'],
-    );
-  }
 
   factory AyahModel.fromMap(Map<String, dynamic> map) {
     return AyahModel(
@@ -35,7 +24,7 @@ class AyahModel {
       ayahNumber: map['ayah_number'],
       page: map['page'],
       juz: map['juz'],
-      textUthmani: map['text_uthmani'],
+      textIndopak: map['text_indopak'],
       textId: map['text_id'],
     );
   }
@@ -46,7 +35,7 @@ class AyahModel {
       'ayah_number': ayahNumber,
       'page': page,
       'juz': juz,
-      'text_uthmani': textUthmani,
+      'text_indopak': textIndopak,
       'text_id': textId,
     };
   }

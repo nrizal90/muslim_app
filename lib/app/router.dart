@@ -17,8 +17,8 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/quran/mushaf',
       builder: (context, state) {
-        final initialPage = state.extra as int? ?? 1;
-        return MushafScreen(initialPage: initialPage);
+        final surahId = state.extra as int? ?? 1;
+        return MushafScreen(initialSurahId: surahId);
       },
     ),
     GoRoute(

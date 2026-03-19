@@ -45,13 +45,7 @@ class _SurahListScreenState extends State<SurahListScreen> {
             itemBuilder: (context, index) {
               final surah = surahs[index];
               return ListTile(
-                onTap: () async {
-                  final page = await _localDataSource
-                      .getFirstPageBySurahId(surah.id);
-                  if (context.mounted) {
-                    context.push('/quran/mushaf', extra: page);
-                  }
-                },
+                onTap: () => context.push('/quran/mushaf', extra: surah.id),
                 leading: Container(
                   width: 40,
                   height: 40,
@@ -70,11 +64,13 @@ class _SurahListScreenState extends State<SurahListScreen> {
                   ),
                 ),
                 title: Text(
-                  surah.nameEnglish,
+                  surah.nameIndonesian.isNotEmpty
+                      ? surah.nameIndonesian
+                      : surah.nameEnglish,
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 subtitle: Text(
-                  "${surah.revelationType} • ${surah.totalAyah} ayat",
+                  "${surah.nameEnglish} • ${surah.revelationType} • ${surah.totalAyah} ayat",
                   style: const TextStyle(fontSize: 12),
                 ),
                 trailing: Text(

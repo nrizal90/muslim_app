@@ -28,7 +28,8 @@
 
 ### 6. Duplikasi Bismillah di Mushaf
 - **Masalah:** API menyertakan teks Bismillah di dalam `textUthmani` ayah 1, sedangkan kita juga menampilkan header Bismillah tersendiri
-- **Fix:** Fungsi `_stripBismillah()` — strip prefix Bismillah dari teks ayah 1 saat header sudah ditampilkan
+- **Fix v1:** `_stripBismillah()` pakai `startsWith` — gagal karena variasi encoding Unicode teks API
+- **Fix v2:** Cari posisi akhir kata "Ar-Raheem" (`ٱلرَّحِيمِ`) lalu ambil teks setelahnya. Toleran terhadap 3 variasi encoding. Batas `idx < 80` mencegah strip salah jika kata tersebut muncul di dalam ayat.
 
 ---
 
@@ -78,7 +79,7 @@
 Status: **Belum diverifikasi sepenuhnya**
 
 Yang perlu dicek:
-- [ ] Apakah strip Bismillah dari `textUthmani` ayah 1 sudah tepat untuk semua surah? (format teks dari API bisa berbeda antar surah)
+- [x] Apakah strip Bismillah dari `textUthmani` ayah 1 sudah tepat untuk semua surah? → **Fix v2** sudah toleran terhadap variasi encoding, perlu konfirmasi di device
 - [ ] Apakah surah 1 (Al-Fatihah) tampil benar tanpa header Bismillah?
 - [ ] Apakah surah 9 (At-Tawbah) tampil benar tanpa header Bismillah?
 - [ ] Apakah ada surah lain yang teksnya tidak diawali Bismillah tapi logic kita tetap menampilkan header? (misal: surah yang dimulai di tengah halaman mushaf)
