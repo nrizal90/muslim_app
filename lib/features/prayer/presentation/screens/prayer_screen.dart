@@ -1,13 +1,10 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jhijri/jhijri.dart';
-import 'package:muslim_app/features/quran/presentation/screens/mushaf_screen.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../../qibla/presentation/screens/qibla_screen.dart';
 import '../providers/prayer_provider.dart';
 import '../../../../core/services/notification_service.dart';
 
@@ -227,13 +224,6 @@ class _PrayerScreenState extends ConsumerState<PrayerScreen> with WidgetsBinding
     };
   }
 
-  String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, "0");
-    String hours = twoDigits(duration.inHours);
-    String minutes = twoDigits(duration.inMinutes.remainder(60));
-    String seconds = twoDigits(duration.inSeconds.remainder(60));
-    return "$hours:$minutes:$seconds";
-  }
 
   Future<void> scheduleAllPrayer(prayer) async {
     final notificationService = NotificationService();
@@ -243,8 +233,6 @@ class _PrayerScreenState extends ConsumerState<PrayerScreen> with WidgetsBinding
     int idCounter = 1;
 
     for (int dayOffset = 0; dayOffset < 7; dayOffset++) {
-      final date = DateTime.now().add(Duration(days: dayOffset));
-
       final prayers = {
         "Subuh": prayer.fajr.add(Duration(days: dayOffset)),
         "Dzuhur": prayer.dhuhr.add(Duration(days: dayOffset)),
@@ -431,8 +419,6 @@ class _PrayerScreenState extends ConsumerState<PrayerScreen> with WidgetsBinding
     );
   }
 
-  final notif = NotificationService();
-
   @override
   Widget build(BuildContext context) {
     final prayerAsync = ref.watch(prayerTimeProvider);
@@ -509,29 +495,28 @@ class _PrayerScreenState extends ConsumerState<PrayerScreen> with WidgetsBinding
               const SizedBox(height: 20),
 
               /// NOTIFICATION SWITCH
-              // Card(
-              //   shape: RoundedRectangleBorder(
-              //       borderRadius: BorderRadius.circular(16)),
-              //   child: SwitchListTile(
-              //     title: const Text("Notifikasi Adzan"),
-              //     subtitle: const Text("Aktifkan pengingat waktu sholat"),
-              //     value: notificationEnabled,
-              //     onChanged: (value) async {
-              //       setState(() {
-              //         notificationEnabled = value;
-              //       });
+              Card(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                child: SwitchListTile(
+                  title: const Text("Notifikasi Adzan"),
+                  subtitle: const Text("Aktifkan pengingat waktu sholat"),
+                  value: notificationEnabled,
+                  onChanged: (value) async {
+                    setState(() {
+                      notificationEnabled = value;
+                    });
 
-              //       await _saveNotificationStatus(value);
+                    await _saveNotificationStatus(value);
 
-              //       if (value) {
-              //         await scheduleAllPrayer(prayer);
-              //       } else {
-              //         final service = NotificationService();
-              //         await service.cancelAll();
-              //       }
-              //     },
-              //   ),
-              // ),
+                    if (value) {
+                      await scheduleAllPrayer(prayer);
+                    } else {
+                      await NotificationService().cancelAll();
+                    }
+                  },
+                ),
+              ),
 
               const SizedBox(height: 30),
 
@@ -554,45 +539,17 @@ class _PrayerScreenState extends ConsumerState<PrayerScreen> with WidgetsBinding
                 childAspectRatio: 0.9, // Mengatur rasio lebar/tinggi kotak
                 children: [
                   _featureItem(context, "Al-Qur'an", Icons.menu_book_rounded,
-                    onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const MushafScreen(),
-                          ),
-                        );
-                      },
-                      isEnabled: true),
+                    onTap: () => context.go('/quran'),
+                    isEnabled: true),
                   _featureItem(context, "Dzikir Pagi & Petang", Icons.import_contacts_rounded),
                   _featureItem(context, "Masjid Terdekat", Icons.mosque_rounded),
-                  _featureItem(context, "Kiblat", Icons.explore_rounded, 
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const QiblaScreen(),
-                        ),
-                      );
-                    },
+                  _featureItem(context, "Kiblat", Icons.explore_rounded,
+                    onTap: () => context.go('/qibla'),
                     isEnabled: true),
                   _featureItem(context, "Kumpulan Doa Harian", Icons.auto_stories_rounded),
                   _featureItem(context, "Zakat", Icons.payments_rounded),
                 ],
               ),
-              // ElevatedButton(
-              //   onPressed: () async {
-              //     await debugNotification60Seconds();
-              //     // await notif.showInstantTest();
-              //   },
-              //   child: const Text("Test Notifikasi 60 Detik"),
-              // ),
-              // ElevatedButton(
-              //   onPressed: () async {
-              //     // await debugNotification60Seconds();
-              //     await notif.showInstantTest();
-              //   },
-              //   child: const Text("Test Instant Notifikasi"),
-              // ),
             ],
           );
         },

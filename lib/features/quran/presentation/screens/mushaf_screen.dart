@@ -15,33 +15,12 @@ class _MushafScreenState extends State<MushafScreen> {
   late PageController _pageController;
 
   int currentPage = 1;
-  List<AyahModel> ayahs = [];
 
   @override
   void initState() {
     super.initState();
     localDataSource = QuranLocalDataSource(DatabaseHelper.instance);
-    _pageController = PageController(initialPage: 603);
-    loadPage(currentPage);
-  }
-
-  Future<void> loadPage(int page) async {
-    final data = await localDataSource.getAyahsByPage(page);
-
-    setState(() {
-      ayahs = data;
-      currentPage = page;
-    });
-  }
-
-  String buildMushafText(List<AyahModel> ayahs) {
-    String result = "";
-
-    for (var ayah in ayahs) {
-      result += "${ayah.textUthmani} ۝${ayah.ayahNumber} ";
-    }
-
-    return result;
+    _pageController = PageController(initialPage: 0);
   }
 
   @override

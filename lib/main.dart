@@ -1,45 +1,91 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/app.dart';
-// import 'core/services/timezone_service.dart';
 import 'core/database/database_helper.dart';
 import 'core/services/notification_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter_timezone/flutter_timezone.dart';
 
 import 'features/quran/data/datasources/quran_local_datasource.dart';
 import 'features/quran/data/datasources/quran_remote_datasource.dart';
-import 'features/quran/data/models/ayah_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // await TimezoneService.init();
   tz.initializeTimeZones();
-  tz.setLocalLocation(tz.getLocation('Asia/Jakarta'));
+  final localTimezone = await FlutterTimezone.getLocalTimezone();
+  tz.setLocalLocation(tz.getLocation(localTimezone));
   await initializeDateFormatting('id', null);
 
-  final notificationService = NotificationService();
-  await notificationService.init();
+  runApp(const ProviderScope(child: AppInitializer()));
+}
 
-  await DatabaseHelper.instance.database;
+class AppInitializer extends StatefulWidget {
+  const AppInitializer({super.key});
 
-  final dbHelper = DatabaseHelper.instance;
-  final local = QuranLocalDataSource(dbHelper);
-  final remote = QuranRemoteDataSource();
+  @override
+  State<AppInitializer> createState() => _AppInitializerState();
+}
 
-  final isEmpty = await local.isAyahTableEmpty();
+class _AppInitializerState extends State<AppInitializer> {
+  bool _ready = false;
+  String _status = "Memulai aplikasi...";
 
-  if (isEmpty) {
-    print("Fetching real Quran data...");
-
-    final ayahs = await remote.fetchAllAyahs();
-
-    await local.insertAyahs(ayahs);
-
-    print("Real Quran inserted!");
+  @override
+  void initState() {
+    super.initState();
+    _initialize();
   }
 
-  runApp(const ProviderScope(child: MyApp()));
+  Future<void> _initialize() async {
+    _setStatus("Menyiapkan notifikasi...");
+    await NotificationService().init();
+
+    _setStatus("Membuka database...");
+    await DatabaseHelper.instance.database;
+
+    final local = QuranLocalDataSource(DatabaseHelper.instance);
+    final isEmpty = await local.isAyahTableEmpty();
+
+    if (isEmpty) {
+      _setStatus("Mengunduh data Al-Qur'an...\n(hanya sekali saat pertama install)");
+      final ayahs = await QuranRemoteDataSource().fetchAllAyahs();
+
+      _setStatus("Menyimpan data Al-Qur'an...");
+      await local.insertAyahs(ayahs);
+    }
+
+    setState(() => _ready = true);
+  }
+
+  void _setStatus(String status) {
+    if (mounted) setState(() => _status = status);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_ready) return const MyApp();
+
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 24),
+              Text(
+                _status,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
